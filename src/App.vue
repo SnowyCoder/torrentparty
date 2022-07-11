@@ -1,49 +1,29 @@
 <script setup lang="ts">
 import { computed, provide, ref, shallowRef } from 'vue';
 import { torrentKey, socketKey } from './store';
-import Upload from './components/upload/Upload.vue';
-import Download from './components/download/Download.vue';
-import { Socket } from './socket';
+import { Socket } from './socket/Socket';
+import ChooseRoom from './components/ChooseRoom.vue';
+import Room from './components/Room.vue';
+import type WebTorrent from 'webtorrent';
 
-const torrent = new window.WebTorrent({
-//  tracker: false,
-//  webSeeds: false,
-});
+interface Props {
+  torrent: WebTorrent.Instance,
+  socket: Socket,
+};
+const {
+  torrent, socket
+} = defineProps<Props>();
+
 provide(torrentKey, torrent);
+provide(socketKey, socket);
 
-let isLoading = ref(true);
-let isConnected = ref(false);
+const room = socket.plugins.room.locHash;
 
-const socketRef = shallowRef<Socket | null>(null);
-
-provide(socketKey, computed(() => socketRef.value!))
-
-async function loadDht() {
-  const socket = await Socket.create();
-  socketRef.value = socket;
-
-  isLoading.value = false;
-
-  if (!socket.isOnline) {
-    return;
-  }
-  isConnected.value = true;
-}
-const isActive = location.hash == '';
-
-loadDht();
 </script>
 
 <template>
-  <p class="text-xl" v-if="isLoading">Loading...</p>
-  <p class="text-xl" v-else-if="!isConnected">Connection failed, try again later</p>
-  <template v-else>
-    <div class="flex flex-col content-center item-center">
-      <p class="text-5xl text-center py-4">TorrentParty</p>
-      <Upload v-if="isActive"></Upload>
-      <Download v-else></Download>
-    </div>
-  </template>
+  <ChooseRoom v-if="room == ''"></ChooseRoom>
+  <Room v-else></Room>
 </template>
 
 <style scoped>

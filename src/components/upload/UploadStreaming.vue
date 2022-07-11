@@ -1,29 +1,36 @@
 
 <script setup lang="ts">
-import { onEvent } from '@/socket';
-import { socketKey } from '@/store';
-import { inject, onMounted, ref } from 'vue';
+import { onEvent } from '@/socket/Socket';
+import { friendListExtraKey, socketKey } from '@/store';
+import { defineComponent, h, inject, onUnmounted, ref, toRefs } from 'vue';
+import PlayStream from '../PlayStream.vue';
+import StopSharingBtn from './StopSharingBtn.vue';
 
-const socket = inject(socketKey)!.value;
+const socket = inject(socketKey)!;
 
 interface Props {
   stream: MediaStream,
 }
 
+const emit = defineEmits(['end']);
+
 const {
   stream
 } = defineProps<Props>();
-
-const videoElement = ref<HTMLVideoElement | null>(null);
-
 
 socket.sendPacket({
   type: 'start-stream',
 });
 for (const peer of socket.peers.values()) {
+  const oldSenders = peer.connection.getSenders();
+  let oldi = 0;
   for (let track of stream.getTracks()) {
-    console.log("addTrack", peer.connection);
-    peer.connection.addTrack(track);
+    if (oldi < oldSenders.length) {
+      oldSenders[oldi].replaceTrack(track);
+      oldi++;
+    } else {
+      peer.connection.addTrack(track);
+    }
   }
 }
 
@@ -32,24 +39,30 @@ onEvent(socket.events, 'connect', (peerId) => {
 
   const peer = socket.peers.get(peerId)!.connection;
   for (let track of stream.getTracks()) {
-    console.log("addTrack2", peer);
     peer.addTrack(track);
   }
 });
-
-onMounted(() => {
-  const videoStream = new MediaStream([stream.getVideoTracks()[0]]);
-  videoElement.value!.srcObject = videoStream;
-  videoElement.value!.autoplay = true;
-});
-function shareLink() {
-  navigator.clipboard.writeText(location.href);
+stream.getVideoTracks()[0].onended = () => {
+  stop();
 }
+function stop() {
+  for (const track of stream.getTracks()) {
+    track.stop();
+  }
+  socket.sendPacket({
+    type: 'stop-stream',
+  });
+  emit("end");
+}
+
+const videoStream = new MediaStream([stream.getVideoTracks()[0]]);
+
+const me = socket.dht.id;
 </script>
 
 <template>
-<div class="flex flex-col justify-center items-center">
-  <video controls ref="videoElement"></video>
-  <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold my-4 py-2 px-4 rounded" :onclick="shareLink">Share link!</button>
+<div class="flex flex-col items-center">
+  <PlayStream :streamer="me" :stream="videoStream"></PlayStream>
+  <StopSharingBtn @click="stop"></StopSharingBtn>
 </div>
 </template>

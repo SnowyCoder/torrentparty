@@ -2,10 +2,9 @@
 import { inject } from 'vue';
 import { socketKey } from '../store';
 
+const socket = inject(socketKey)!;
 
-const socket = inject(socketKey)!.value;
-
-const name = socket.name;
+const name = socket.plugins.name.name;
 
 </script>
 

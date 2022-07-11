@@ -1,16 +1,25 @@
 <script setup lang="ts">
+import { onEvent } from '@/socket/Socket';
 import { socketKey } from '@/store';
-import { inject, onMounted, onUnmounted, ref } from 'vue';
+import { inject, onUnmounted } from 'vue';
+import PlayStream from '../PlayStream.vue';
 
+const socket = inject(socketKey)!;
 
-const socket = inject(socketKey)!.value;
+interface Props {
+    streamer: string;
+}
+const {
+    streamer
+} = defineProps<Props>();
+
+const emit = defineEmits(['end']);
 
 const stream = new MediaStream();
 
 for (const peer of socket.peers.values()) {
-    const tracks = peer.connection.getReceivers().map(x => x.track);
-    for (let track of tracks) {
-        stream.addTrack(track);
+    for (let rec of peer.connection.getReceivers()) {
+        stream.addTrack(rec.track);
     }
     peer.connection.ontrack = (ev) => {
         console.log("Track!", ev.track);
@@ -18,11 +27,8 @@ for (const peer of socket.peers.values()) {
     };
 };
 
-const videoEl = ref<HTMLVideoElement | null>();
-
-onMounted(() => {
-    videoEl.value!.srcObject = stream;
-    videoEl.value!.autoplay = true;
+onEvent(socket.events, 'p/stop-stream', () => {
+    emit('end');
 })
 
 onUnmounted(() => {
@@ -34,7 +40,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-<div class="flex justify-center">
-<video controls ref="videoEl" class="w-full md:w-3/4"></video>
-</div>
+<PlayStream :stream="stream" :streamer="streamer"></PlayStream>
 </template>

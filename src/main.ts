@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
-import App from './App.vue'
 import 'virtual:windi.css'
 import 'virtual:windi-devtools'
+import SocketConnect from './SocketConnect.vue'
 
 
-createApp(App).mount('#app')
+createApp(SocketConnect).mount('#app')

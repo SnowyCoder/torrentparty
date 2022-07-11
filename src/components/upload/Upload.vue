@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { socketKey } from "@/store";
-import { inject, shallowRef } from "vue";
-import NameListDownload from "../NameListDownload.vue";
+import { shallowRef } from "vue";
 import UploadTorrent from "./UploadTorrent.vue";
 import UploadStreaming from "./UploadStreaming.vue";
 
@@ -14,21 +12,12 @@ type Status = 'selecting' | {
 };
 const status = shallowRef<Status>('selecting');
 
-const socket = inject(socketKey)!.value;
+const emit = defineEmits(['end']);
 
-socket.initActive();
-location.hash = socket.dht.id;
-
-const torrentFile = shallowRef<File | null>();
-
-function upload() {
-  if (!torrentFile.value) {
-    alert("Select a file");
-    return;
-  }
+function upload(file: File) {
   status.value = {
     type: 'torrent',
-    file: torrentFile.value,
+    file,
   };
 }
 
@@ -51,31 +40,30 @@ async function stream() {
   };
 }
 
+function resetState() {
+  status.value = 'selecting';
+  emit('end');
+}
+
 </script>
 
 <template>
   <div v-if="status == 'selecting'" class="flex flex-row justify-center items-center">
-    <div class="w-64">
-      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="file_input">Upload file</label>
-      <input class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
-        id="file_input" type="file" accept="video/*" @change="event => torrentFile = (event.target as HTMLInputElement).files!.item(0)">
-      <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold my-4 py-2 px-4 rounded" @click="upload">Share</button>
+    <div class="w-fit">
+      <label class="bg-transparent border-1 border-blue-500 text-blue-500 hover:(bg-blue-600 border-blue-700 text-white) font-bold my-4 py-2 px-4 rounded transition" for="file_input">Upload file</label>
+      <input class="hidden"
+        id="file_input" type="file" accept="video/*" @change="event => upload((event.target as HTMLInputElement).files!.item(0)!)">
     </div>
     <p class="px-8">or</p>
-    <div class="w-64">
+    <div class="w-fit">
       <button @click="stream"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold my-4 py-2 px-4 rounded">Stream</button>
+        class="bg-transparent border-1 border-blue-500 text-blue-500 hover:(bg-blue-600 border-blue-700 text-white) font-bold my-4 py-2 px-4 rounded transition">Stream</button>
     </div>
   </div>
-  <section v-else-if="status.type == 'torrent'">
-    <UploadTorrent :file="status.file"></UploadTorrent>
-  </section>
-  <section v-else-if="status.type == 'stream'">
-    <UploadStreaming :stream="status.stream"></UploadStreaming>
-  </section>
-
-  <div class="py-5 px-5">
-    <NameListDownload></NameListDownload>
-  </div>
-
+  <template v-else-if="status.type == 'torrent'">
+    <UploadTorrent :file="status.file" @end="resetState"></UploadTorrent>
+  </template>
+  <template v-else-if="status.type == 'stream'">
+    <UploadStreaming :stream="status.stream" @end="resetState"></UploadStreaming>
+  </template>
 </template>
