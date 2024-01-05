@@ -3,7 +3,6 @@
 import { inject, ref, shallowRef } from 'vue';
 import { Storage as IdbChunkStore } from 'idb-chunk-store';
 import { socketKey, torrentKey } from '@/store';
-import { onEvent } from '@/socket/Socket';
 import PlayTorrent from '../PlayTorrent.vue';
 import StopSharingBtn from './StopSharingBtn.vue';
 

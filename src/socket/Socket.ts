@@ -5,6 +5,7 @@ import { Packet } from "./Protocol";
 import { NamePlugin } from './NamePlugin';
 import { ReconnectPlugin } from './ReconnectPlugin';
 import { RoomPlugin } from './RoomPlugin';
+import wdhtWasmPath from "web-dht/web_dht_bg.wasm?url";
 
 type Filter<T, U> = T extends U ? T : never;
 
@@ -22,12 +23,16 @@ type SocketEventTypes = {
     [Type in Packet['type'] as `p/${Type}`]: [Filter<Packet, {"type": Type}>, string]
 };
 
-interface PeerData {
+export interface InitOptions {
+    progress?: (x: 'download' | 'init' | 'bootstrap') => void;
+}
+
+export interface PeerData {
     channel: RTCDataChannel,
     connection: RTCPeerConnection,
 }
 
-interface DefaultPlugins {
+export interface DefaultPlugins {
     'name': NamePlugin,
     'reconnect': ReconnectPlugin,
     'room': RoomPlugin,
@@ -111,9 +116,13 @@ export class Socket<P extends DefaultPlugins = DefaultPlugins> {
         this.events.emit('disconnect', peerId);
     }
 
-    static async create(): Promise<Socket> {
-        await init();
-        const dht = await WebDht.create(["https://wdht.rossilorenzo.dev:3141"]);
+    static async create(opts?: InitOptions): Promise<Socket> {
+        const progress = opts?.progress ?? (() => {});
+        const fetched = await fetch(wdhtWasmPath);
+        progress('download');
+        await init(Promise.resolve(fetched));
+        progress('bootstrap');
+        const dht = await WebDht.create(["https://wdht.rossilorenzo.dev"]);
 
         return new Socket(dht);
     }

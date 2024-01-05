@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Ref, ref } from 'vue';
-import { TorrentFile } from 'webtorrent';
+import type { TorrentFile } from 'webtorrent';
 
 
 interface Props {

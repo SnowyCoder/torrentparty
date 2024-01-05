@@ -15,7 +15,6 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    wasmPack([], ['web-dht']),
     windiCSS(),
   ],
 })

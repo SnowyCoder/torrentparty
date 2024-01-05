@@ -12,9 +12,17 @@ let isLoading = ref(true);
 let isConnected = ref(false);
 
 const socketRef = shallowRef<Socket | null>(null);
+const loadingState = ref("Loading...");
 
 async function loadDht() {
-  const socket = await Socket.create();
+  const socket = await Socket.create({
+    progress: (p) => {
+      console.log("PROGRESS", p);
+      switch (p) {
+      case 'download': loadingState.value = 'Downloading...'; break;
+      case 'bootstrap': loadingState.value = 'Bootstrapping DHT...'; break;
+    }},
+  });
   socketRef.value = socket;
 
   isLoading.value = false;
@@ -32,7 +40,7 @@ loadDht();
   <div class="flex flex-col justify-center items-center">
     <p class="text-5xl text-center py-4">TorrentParty</p>
 
-    <p class="text-xl" v-if="isLoading">Loading...</p>
+    <p class="text-xl" v-if="isLoading">{{loadingState}}</p>
     <p class="text-xl" v-else-if="!isConnected">Connection failed, try again later</p>
     <App v-else :socket="socketRef!" :torrent="torrent"/>
   </div>
